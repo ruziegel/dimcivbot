@@ -2,18 +2,6 @@
 # pylint: disable=unused-argument
 # This program is dedicated to the public domain under the CC0 license.
 
-"""
-Simple Bot to reply to Telegram messages.
-
-First, a few handler functions are defined. Then, those functions are passed to
-the Application and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-
-Usage:
-Basic Echobot example, repeats messages.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
-"""
 
 import logging
 
@@ -23,6 +11,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from telegram.constants import ParseMode
 import my_settings
 from gspread import Client, Spreadsheet, Worksheet, service_account
+from pprint import pprint
 
 Free_role_table = 'https://docs.google.com/spreadsheets/d/11M0r6ESBKx8hUAbzW3v-nwOHkgnl1P_BZ5xY1Kamifo'
 Role_table = 'https://docs.google.com/spreadsheets/d/1qP4VMj3eulrNbliMxCH6XBB4NRc_3CtX2OeTMU_4f5w'
@@ -129,74 +118,70 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.message:
+    if update.message.text:
+        answer = ''
         print(update.message.text.lower())
         if '!правила' in update.message.text.lower():
-            await update.message.reply_text(my_settings.RULES)
-        if '!законы' in update.message.text.lower():
-            await update.message.reply_text(my_settings.BILLS)
-        # if '!актуальныероли' in update.message.text.lower():
-        #    await update.message.reply_text(my_settings.ROLES)
-        if '!свободныероли' in update.message.text.lower():
+            answer += my_settings.RULES
+        elif '!законы' in update.message.text.lower():
+            answer += my_settings.BILLS
+        elif '!свободныероли' in update.message.text.lower():
             rows = danil_table.worksheet('Лист1').get_all_values()
             rows = '\n'.join([i[0] for i in rows])
-            await update.message.reply_text(rows)
-        if '!олигархи' in update.message.text.lower():
-            await update.message.reply_text(my_settings.OLIGARCH)
-        if any(i in update.message.text.lower() for i in ['!хэлп', '!хелп', '!help']):
-            await update.message.reply_text(my_settings.HELP)
-        if 'рабств' in update.message.text.lower():
-            await update.message.reply_text('Мы верные псы нашего Президента!')
-        if 'рабовл' in update.message.text.lower():
-            await update.message.reply_text('Мы верные псы нашего Президента!')
-        if 'тот чат' in update.message.text.lower():
-            await update.message.reply_text('Вы этой шуткой даже меня заебали')
-        if '!император' in update.message.text.lower():
-            await update.message.reply_text(
-                'Тут всем правит Солнцеликий Данил/Магнус, первый губернатор Вашингтона, ' +
-                'Президент, председатель совета пяти, гроза популистской оппозиции и защитник веры Слонов'
-            )
-        if 'самый крутой тип' in update.message.text.lower():
-            mention = "<a href='tg://user?id=1979871028'>@IlyaBovyka</a>"
-            await update.message.reply_text(
-                f"Самый крутой тип: {mention}",
-                parse_mode=ParseMode.HTML
-            )
-        if '!tasks' in update.message.text.lower():
-            await update.message.reply_text(
-                'https://trello.com/invite/b/69b1639c03058d74a0767b03/ATTI0c029ae6d4c9d1cbb85d8af947d794c170C40CEF/%D1%85%D0%BE%D1%82%D0%B5%D0%BB%D0%BA%D0%B8-%D0%BF%D0%BE-%D0%B1%D0%BE%D1%82%D1%83')
-        if '!актуальныероли' in update.message.text.lower():
+            answer += rows
+        elif '!олигархи' in update.message.text.lower():
+            answer += my_settings.OLIGARCH
+        elif any(i in update.message.text.lower() for i in ['!хэлп', '!хелп', '!help']):
+            answer += my_settings.HELP
+        elif '!император' in update.message.text.lower():
+            answer += my_settings.EMPEROR
+        elif '!tasks' in update.message.text.lower():
+            answer += my_settings.TASKS
+        elif '!актуальныероли' in update.message.text.lower():
             rows = role_table.worksheet('Лист1').get_all_values()
             roleDict = {i[0].strip('@'): [i[1].strip('@')] + i[2:][0].split('\n') for i in rows[1:]}
             s = '\n'.join(f'{k} {v[0]}: {", ".join(v[1:])}' for k, v in roleDict.items())
-            await update.message.reply_text(s)
+            answer += s
+        elif 'рабств' in update.message.text.lower():
+            answer += 'Мы верные псы нашего Президента!'
+        if 'рабовл' in update.message.text.lower():
+            answer += 'Мы верные псы нашего Президента!'
+        if 'тот чат' in update.message.text.lower():
+            answer += 'Вы этой шуткой даже меня заебали'
+        if 'самый крутой тип' in update.message.text.lower():
+            answer += '@IlyaBovyka'
         if '!роль' in update.message.text.lower():
             rows = role_table.worksheet('Лист1').get_all_values()
             roleDict = {i[0].strip('@'): [i[1].strip('@')] + i[2:][0].split('\n') for i in rows[2:]}
+            pprint(roleDict)
             roleDict['sachaperkow'] = ['sachaperkow', 'Мастер', 'Змей-искуситель', 'Вносящий хаос и раздор', 'Банкомат']
-            d = update.message.text.find('!Роль')
+            roleDict['Wkkk1'].extend(['Гений', 'Миллиардер', 'Плейбой', 'Филантроп'])
+            d = update.message.text.lower().find('!роль')
             if d != -1:
-                subreq = update.message.text[d + len('!роль'):].split()[0]
+                subreq = update.message.text[d + len('!роль'):].split()[0].strip('@')
+                for k, v in roleDict.items():
+                    if subreq in v[0]:
+                        subreq = k
+                        break
                 if subreq.lower() in [i.lower() for i in roleDict.keys()]:
                     roles = '\n'.join(roleDict[subreq][1:])
-                    if subreq.lower() == 'wkkk1':
-                        roles += '\nГений\nМиллиардер\nПлейбой\nФилантроп'
-                    await update.message.reply_text(
-                        f'Игрок {subreq}\nНик на Пикабу: {roleDict[subreq][0] if roleDict[subreq][0] else "Нету"}\n{roles}')
+                    answer += f'Игрок {subreq}\nНик на Пикабу: {roleDict[subreq][0] if roleDict[subreq][0] else "Нету"}\n{roles}'
                 else:
-                    await update.message.reply_text('Нет такого игрока')
+                    answer += 'Нет такого игрока'
             else:
-                await update.message.reply_text('Нет такого игрока')
+                answer += 'Нет такого игрока'
 
         if any(i in update.message.text.lower() for i in ['мастер', 'гм', 'ведущ']):
-            await update.message.reply_text('Бог ещё с нами')
+            answer += 'Бог ещё с нами'
         if any(i in update.message.text.lower() for i in ['революц', 'переворот', 'свержение']):
-            await update.message.reply_text('Совет Пяти напоминает, что за это действие можно получить срок')
+            answer += 'Совет Пяти напоминает, что за это действие можно получить срок'
         if any(i in update.message.text.lower() for i in ['добр', 'привет']) and 'лена' in update.message.text.lower():
             user = update.effective_user
-            await update.message.reply_html(
-                rf"И тебе привет, {user.mention_html()})")
-        # await update.message.reply_text(update.message.text)
+            answer += rf"И тебе привет, {user.mention_html()})"
+        if my_settings.SPAM:
+            answer += f'''\n ------------------------------------------------------
+            Минутка рекламы\n{my_settings.SPAM}'''
+        await update.message.reply_text(answer)
 
 
 async def greet_chat_members(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
